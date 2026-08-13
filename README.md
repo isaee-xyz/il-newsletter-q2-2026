@@ -16,7 +16,7 @@ An Inshorts-style vertical deck: **one page per screen, swipe up for the next**.
 
 - **One page per gesture** — CSS scroll-snap with `scroll-snap-stop: always`, so a hard flick still advances exactly one page.
 - **Whole page always visible** — each page is contained within the screen, never cropped, so no pinch-and-pan is needed to see a spread.
-- **Card transition** — the outgoing page dims and lifts away while the incoming one rises from below at a slight scale, tied to the swipe rather than played on a fixed timer, so it tracks the finger and reverses if you change your mind mid-drag.
+- **Card transition** — the outgoing page dims, tilts back and lifts away while the incoming one rises from below, scaling and un-tilting into place under a 1600px perspective. Tied to the swipe rather than played on a fixed timer, so it tracks the finger and reverses if you change your mind mid-drag.
 - **Story-style progress** — 14 segments across the top track position; tap any segment to jump.
 - **First-run instruction** — a "swipe up to read" card on the first visit only, remembered in `localStorage`.
 - Chevron buttons, arrow keys, `Space`, `PageUp`/`PageDown`, and `Home`/`End` all work for non-touch users.
@@ -32,7 +32,16 @@ between them:
   `paused` and scrubbed by setting a negative `animation-delay` from the existing
   rAF-throttled scroll handler.
 
-A `CSS.supports` check picks one path, never both. A 3D page-flip was considered and
+A `CSS.supports` check picks one path, never both.
+
+Because the motion follows scroll position, its speed *is* the speed of your finger —
+it cannot be slowed directly. So buttons, arrow keys and progress-segment taps run
+their own 700ms eased scroll (`easeOutCubic`) instead of native `behavior: smooth`,
+which settles too fast to read. Mandatory scroll-snap would yank a per-frame tween
+straight to the nearest page, so snap is suspended for the tween and restored at the
+end — and also on interrupt (`pointerdown`/`touchstart`/`wheel`), on resize, and when
+the tab is hidden, since rAF stops there. Snap is never left switched off. Jumps of
+more than two pages skip the animation, as they would only blur past unloaded pages. A 3D page-flip was considered and
 rejected: on full-bleed poster pages it reads as heavy and disorienting, and it costs
 far more to keep smooth on low-end phones than a translate/scale/opacity card.
 

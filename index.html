@@ -177,6 +177,8 @@
     height:100%;
     display:grid;
     place-items:center;
+    /* Gives the card a little depth as it tilts in and out. */
+    perspective:1600px;
   }
 
   /* Sized in px from JS so the shadow hugs the page, not the letterbox. */
@@ -200,9 +202,11 @@
   }
 
   @keyframes cardSwipe{
-    0%   {transform:translateY(9%) scale(.9);opacity:.45}
-    50%  {transform:translateY(0) scale(1);opacity:1}
-    100% {transform:translateY(-9%) scale(.9);opacity:.45}
+    0%   {transform:translateY(17%) scale(.8)  rotateX(-10deg);opacity:.22}
+    35%  {transform:translateY(6%)  scale(.94) rotateX(-3.5deg);opacity:.8}
+    50%  {transform:translateY(0)   scale(1)   rotateX(0);opacity:1}
+    65%  {transform:translateY(-6%) scale(.94) rotateX(3.5deg);opacity:.8}
+    100% {transform:translateY(-17%) scale(.8) rotateX(10deg);opacity:.22}
   }
 
   /* Preferred path: the compositor drives the card straight from scroll
@@ -601,14 +605,70 @@ function refresh() {
   paint();
 }
 
-function goTo(i, smooth = true) {
+// Native `behavior: smooth` settles too fast to read the card transition, so
+// buttons, keys and progress taps run their own eased scroll. Mandatory snap
+// would yank a per-frame tween straight to the nearest page, so it is
+// suspended for the duration and restored at the end.
+const GLIDE_MS = 700;
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+let glide = null;
+
+function stopGlide() {
+  if (!glide) return;
+  cancelAnimationFrame(glide.raf);
+  deck.style.scrollSnapType = '';
+  glide = null;
+}
+
+function goTo(i, animate = true) {
   const target = Math.max(0, Math.min(pdf.numPages - 1, i));
-  deck.scrollTo({ top: target * deck.clientHeight, behavior: smooth ? 'smooth' : 'auto' });
-  // Update immediately so the flip feels instant even before the scroll settles.
+  const to = target * deck.clientHeight;
+
+  // A long jump (Home/End, a distant progress segment) would just blur past
+  // pages that have been unloaded, so take those instantly.
+  const far = Math.abs(target - index) > 2;
+
+  stopGlide();
+
   if (target !== index) {
     index = target;
     refresh();
   }
+
+  if (!animate || far || reducedMotion.matches) {
+    deck.scrollTop = to;
+    return;
+  }
+
+  const from = deck.scrollTop;
+  const dist = to - from;
+  if (!dist) return;
+
+  const started = performance.now();
+  deck.style.scrollSnapType = 'none';
+
+  const step = (now) => {
+    const t = Math.min(1, (now - started) / GLIDE_MS);
+    const eased = 1 - Math.pow(1 - t, 3); // easeOutCubic
+    deck.scrollTop = from + dist * eased;
+
+    if (t < 1) {
+      glide.raf = requestAnimationFrame(step);
+    } else {
+      glide = null;
+      deck.style.scrollSnapType = '';
+      deck.scrollTop = to;
+    }
+  };
+
+  glide = { raf: requestAnimationFrame(step) };
+}
+
+// Any real input wins over an in-flight glide; restoring snap lets the browser
+// settle to the nearest page from wherever the tween had reached.
+for (const ev of ['pointerdown', 'touchstart', 'wheel']) {
+  deck.addEventListener(ev, stopGlide, { passive: true });
 }
 
 // ---- card transition -----------------------------------------------------
@@ -678,9 +738,10 @@ deck.addEventListener('keydown', (e) => {
 // ---- resize: keep the current page pinned --------------------------------
 let t;
 const onResize = () => {
+  stopGlide();
   clearTimeout(t);
   t = setTimeout(() => {
-    deck.scrollTo({ top: index * deck.clientHeight, behavior: 'auto' });
+    deck.scrollTop = index * deck.clientHeight;
     refresh();
   }, 180);
 };
@@ -690,7 +751,14 @@ window.addEventListener('orientationchange', onResize);
 
 // Hidden tabs suspend requestAnimationFrame, which stalls pdf.js mid-render.
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') refresh();
+  if (document.visibilityState === 'visible') {
+    refresh();
+  } else {
+    // rAF is suspended while hidden; abandoning the tween here keeps snap
+    // from being left switched off.
+    stopGlide();
+    deck.scrollTop = index * deck.clientHeight;
+  }
 });
 
 refresh();
