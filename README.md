@@ -16,9 +16,28 @@ An Inshorts-style vertical deck: **one page per screen, swipe up for the next**.
 
 - **One page per gesture** — CSS scroll-snap with `scroll-snap-stop: always`, so a hard flick still advances exactly one page.
 - **Whole page always visible** — each page is contained within the screen, never cropped, so no pinch-and-pan is needed to see a spread.
+- **Card transition** — the outgoing page dims and lifts away while the incoming one rises from below at a slight scale, tied to the swipe rather than played on a fixed timer, so it tracks the finger and reverses if you change your mind mid-drag.
 - **Story-style progress** — 14 segments across the top track position; tap any segment to jump.
 - **First-run instruction** — a "swipe up to read" card on the first visit only, remembered in `localStorage`.
 - Chevron buttons, arrow keys, `Space`, `PageUp`/`PageDown`, and `Home`/`End` all work for non-touch users.
+
+### How the transition is driven
+
+One `@keyframes` set feeds two delivery mechanisms, so the motion can never drift
+between them:
+
+- Browsers with **scroll-driven animations** (`animation-timeline: view()`) run it
+  on the compositor, locked to scroll position through momentum scrolling.
+- Everywhere else — notably iOS before Safari 26 — the same keyframes are declared
+  `paused` and scrubbed by setting a negative `animation-delay` from the existing
+  rAF-throttled scroll handler.
+
+A `CSS.supports` check picks one path, never both. A 3D page-flip was considered and
+rejected: on full-bleed poster pages it reads as heavy and disorienting, and it costs
+far more to keep smooth on low-end phones than a translate/scale/opacity card.
+
+Under `prefers-reduced-motion` the card motion is dropped entirely rather than
+compressed into a 0.01s flash.
 
 ## Rendering
 

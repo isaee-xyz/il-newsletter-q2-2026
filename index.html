@@ -186,6 +186,34 @@
     border-radius:var(--radius);
     overflow:hidden;
     box-shadow:0 2px 6px rgba(10,32,64,.10),0 14px 40px rgba(10,32,64,.16);
+
+    /* The card transition. One keyframe set drives two delivery mechanisms:
+       a scroll-driven timeline where supported, and a paused animation
+       scrubbed by negative delay from JS everywhere else. Longhands only —
+       the `animation` shorthand would reset animation-timeline. */
+    animation-name:cardSwipe;
+    animation-duration:1s;
+    animation-timing-function:linear;
+    animation-fill-mode:both;
+    animation-play-state:paused;
+    animation-delay:-.5s; /* centred, until something scrubs it */
+  }
+
+  @keyframes cardSwipe{
+    0%   {transform:translateY(9%) scale(.9);opacity:.45}
+    50%  {transform:translateY(0) scale(1);opacity:1}
+    100% {transform:translateY(-9%) scale(.9);opacity:.45}
+  }
+
+  /* Preferred path: the compositor drives the card straight from scroll
+     position, so it stays locked to the finger through momentum scrolling. */
+  @supports (animation-timeline:view()){
+    .frame{
+      animation-timeline:view();
+      animation-duration:auto;
+      animation-play-state:running;
+      animation-delay:0s;
+    }
   }
 
   .frame canvas{
@@ -349,6 +377,8 @@
   @media (prefers-reduced-motion:reduce){
     *{animation-duration:.01ms!important;transition-duration:.01ms!important}
     .deck{scroll-behavior:auto}
+    /* Drop the card motion entirely rather than flashing it in 0.01ms. */
+    .frame{animation-name:none;transform:none;opacity:1}
   }
 </style>
 </head>
@@ -566,6 +596,9 @@ function refresh() {
   pager.textContent = `${index + 1} / ${pdf.numPages}`;
   prevBtn.disabled = index === 0;
   nextBtn.disabled = index === pdf.numPages - 1;
+
+  // Covers first paint and post-resize; during a swipe the scroll handler drives it.
+  paint();
 }
 
 function goTo(i, smooth = true) {
@@ -578,6 +611,35 @@ function goTo(i, smooth = true) {
   }
 }
 
+// ---- card transition -----------------------------------------------------
+// Where the browser supports scroll-driven animations the CSS above already
+// runs the card off the scroll position, and JS must keep its hands off.
+// Elsewhere we scrub the same paused keyframes by hand.
+const scrollDriven = window.CSS?.supports?.('animation-timeline', 'view()') ?? false;
+
+function paint() {
+  if (scrollDriven) return;
+
+  const h = deck.clientHeight;
+  if (!h) return;
+
+  const top = deck.scrollTop;
+
+  for (const slot of slots) {
+    // 0 when this page is settled in frame, +1 one screen below, -1 above.
+    const d = slot.slide.offsetTop / h - top / h;
+
+    if (Math.abs(d) > 1.1) {
+      if (slot.frame.style.animationDelay) slot.frame.style.animationDelay = '';
+      continue;
+    }
+
+    // Map [+1 .. -1] onto the 0s..1s keyframe timeline.
+    const p = Math.min(1, Math.max(0, (1 - d) / 2));
+    slot.frame.style.animationDelay = `${-p}s`;
+  }
+}
+
 // ---- input ---------------------------------------------------------------
 let ticking = false;
 deck.addEventListener('scroll', () => {
@@ -587,6 +649,7 @@ deck.addEventListener('scroll', () => {
     ticking = false;
     const h = deck.clientHeight;
     if (!h) return;
+    paint();
     const i = Math.round(deck.scrollTop / h);
     if (i !== index) {
       index = i;
