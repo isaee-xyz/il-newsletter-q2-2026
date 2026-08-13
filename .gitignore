@@ -1,1 +1,8 @@
 .DS_Store
+node_modules/
+.next/
+out/
+.vercel/
+
+# Copied from pdfjs-dist on install by scripts/copy-pdf-worker.mjs
+/public/pdf.worker.min.mjs

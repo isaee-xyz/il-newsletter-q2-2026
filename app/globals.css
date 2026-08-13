@@ -1,0 +1,354 @@
+:root{
+  --navy:#0f2c52;
+  --blue:#2e86c8;
+  --paper:#eceef2;
+  --ink:#0f2c52;
+  --muted:#5b6b82;
+  --radius:14px;
+}
+
+*{box-sizing:border-box}
+
+html,body{
+  height:100%;
+  /* The deck owns scrolling; the document itself never scrolls. */
+  overflow:hidden;
+  overscroll-behavior:none;
+}
+
+body{
+  margin:0;
+  /* Column layout: the strip takes what it needs, the deck takes the rest,
+     so safe-area insets never have to be baked into a height calc. */
+  display:flex;
+  flex-direction:column;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  -webkit-text-size-adjust:100%;
+  -webkit-tap-highlight-color:transparent;
+}
+
+main{
+  display:flex;
+  flex-direction:column;
+  flex:1 1 auto;
+  min-height:0;
+}
+
+.viewer{
+  position:relative;
+  flex:1 1 auto;
+  min-height:0;
+}
+
+.pager{
+  position:absolute;
+  left:12px;
+  left:max(12px,env(safe-area-inset-left));
+  bottom:20px;
+  bottom:max(20px,env(safe-area-inset-bottom));
+  z-index:25;
+  font-size:12px;
+  font-weight:650;
+  font-variant-numeric:tabular-nums;
+  color:#fff;
+  background:rgba(15,44,82,.5);
+  padding:5px 11px;
+  border-radius:999px;
+  white-space:nowrap;
+  pointer-events:none;
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
+}
+
+/* Two users: the onboarding "Got it" button and the fallback PDF link. */
+.btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  height:34px;
+  padding:0 13px;
+  border-radius:999px;
+  background:var(--blue);
+  color:#fff;
+  font-size:13px;
+  font-weight:650;
+  text-decoration:none;
+  border:0;
+  cursor:pointer;
+  white-space:nowrap;
+}
+
+.btn:hover{background:#3d97da}
+.btn:active{transform:scale(.97)}
+
+/* ---------- segmented progress (story style) ---------- */
+.topline{
+  flex:none;
+  z-index:30;
+  background:var(--navy);
+  padding:max(9px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) 9px max(10px,env(safe-area-inset-left));
+}
+
+.progress{
+  display:flex;
+  gap:3px;
+  align-items:center;
+}
+
+.seg{
+  flex:1 1 0;
+  height:3px;
+  min-width:0;
+  padding:0;
+  border:0;
+  border-radius:999px;
+  background:rgba(255,255,255,.22);
+  cursor:pointer;
+  transition:background .25s ease,transform .2s ease;
+}
+
+.seg.done{background:rgba(255,255,255,.5)}
+.seg.active{background:#fff;transform:scaleY(1.6)}
+
+/* ---------- the deck: one page per screen, swipe up ---------- */
+.deck{
+  position:relative;
+  height:100%;
+  display:flex;
+  flex-direction:column;
+  overflow-y:auto;
+  overflow-x:hidden;
+  scroll-snap-type:y mandatory;
+  -webkit-overflow-scrolling:touch;
+  /* Stop an overscroll at either end from pulling-to-refresh or navigating back. */
+  overscroll-behavior-y:contain;
+  scrollbar-width:none;
+}
+
+.deck::-webkit-scrollbar{display:none}
+
+.slide{
+  flex:0 0 100%;
+  width:100%;
+  height:100%;
+  scroll-snap-align:center;
+  /* Forces exactly one page per gesture, however hard the swipe. */
+  scroll-snap-stop:always;
+  padding:10px 10px 14px;
+  padding-bottom:max(14px,env(safe-area-inset-bottom));
+}
+
+.stage{
+  width:100%;
+  height:100%;
+  display:grid;
+  place-items:center;
+  /* Gives the card a little depth as it tilts in and out. */
+  perspective:1600px;
+}
+
+/* Sized in px from JS so the shadow hugs the page, not the letterbox. */
+.frame{
+  position:relative;
+  background:#fff;
+  border-radius:var(--radius);
+  overflow:hidden;
+  box-shadow:0 2px 6px rgba(10,32,64,.10),0 14px 40px rgba(10,32,64,.16);
+
+  /* The card transition. One keyframe set drives two delivery mechanisms:
+     a scroll-driven timeline where supported, and a paused animation
+     scrubbed by negative delay from JS everywhere else. Longhands only —
+     the `animation` shorthand would reset animation-timeline. */
+  animation-name:cardSwipe;
+  animation-duration:1s;
+  animation-timing-function:linear;
+  animation-fill-mode:both;
+  animation-play-state:paused;
+  animation-delay:-.5s; /* centred, until something scrubs it */
+}
+
+@keyframes cardSwipe{
+  0%   {transform:translateY(17%) scale(.8)  rotateX(-10deg);opacity:.22}
+  35%  {transform:translateY(6%)  scale(.94) rotateX(-3.5deg);opacity:.8}
+  50%  {transform:translateY(0)   scale(1)   rotateX(0);opacity:1}
+  65%  {transform:translateY(-6%) scale(.94) rotateX(3.5deg);opacity:.8}
+  100% {transform:translateY(-17%) scale(.8) rotateX(10deg);opacity:.22}
+}
+
+/* Preferred path: the compositor drives the card straight from scroll
+   position, so it stays locked to the finger through momentum scrolling. */
+@supports (animation-timeline:view()){
+  .frame{
+    animation-timeline:view();
+    animation-duration:auto;
+    animation-play-state:running;
+    animation-delay:0s;
+  }
+}
+
+.frame canvas{
+  display:block;
+  width:100%;
+  height:100%;
+}
+
+.frame .skeleton{
+  position:absolute;
+  inset:0;
+  background:linear-gradient(100deg,rgba(15,44,82,.04) 30%,rgba(15,44,82,.09) 50%,rgba(15,44,82,.04) 70%) #fff;
+  background-size:220% 100%;
+  animation:shimmer 1.5s linear infinite;
+}
+
+.frame.ready .skeleton{display:none}
+
+@keyframes shimmer{
+  from{background-position:120% 0}
+  to{background-position:-120% 0}
+}
+
+/* ---------- flip controls, stacked bottom-right ---------- */
+.nav{
+  position:absolute;
+  right:12px;
+  right:max(12px,env(safe-area-inset-right));
+  z-index:25;
+  width:40px;
+  height:40px;
+  display:grid;
+  place-items:center;
+  border:0;
+  border-radius:50%;
+  background:rgba(15,44,82,.55);
+  color:#fff;
+  cursor:pointer;
+  transition:opacity .2s ease,background .2s ease;
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
+}
+
+.nav:hover{background:rgba(15,44,82,.78)}
+.nav:active{transform:scale(.94)}
+.nav svg{width:20px;height:20px}
+.nav.prev{bottom:76px}
+.nav.next{bottom:24px;bottom:max(24px,env(safe-area-inset-bottom))}
+.nav[disabled]{opacity:0;pointer-events:none}
+
+/* ---------- first-run instruction ---------- */
+.onboard{
+  position:absolute;
+  inset:0;
+  z-index:50;
+  display:grid;
+  place-items:center;
+  padding:24px;
+  background:rgba(10,32,64,.72);
+  backdrop-filter:blur(3px);
+  -webkit-backdrop-filter:blur(3px);
+  transition:opacity .35s ease;
+}
+
+.onboard.gone{opacity:0;pointer-events:none}
+
+.onboard-card{
+  width:min(100%,320px);
+  padding:26px 24px 22px;
+  text-align:center;
+  background:#fff;
+  border-radius:20px;
+  box-shadow:0 18px 50px rgba(10,32,64,.3);
+}
+
+.swipe-icon{
+  height:58px;
+  display:grid;
+  place-items:center;
+  margin-bottom:6px;
+  color:var(--blue);
+}
+
+.swipe-icon svg{width:30px;height:30px}
+.swipe-icon svg:first-child{opacity:.35;margin-bottom:-12px;animation:rise 1.6s ease-in-out infinite}
+.swipe-icon svg:last-child{animation:rise 1.6s ease-in-out .18s infinite}
+
+@keyframes rise{
+  0%,100%{transform:translateY(3px);opacity:.35}
+  50%{transform:translateY(-3px);opacity:1}
+}
+
+.onboard-card h2{
+  margin:0 0 8px;
+  font-size:19px;
+  letter-spacing:-.3px;
+}
+
+.onboard-card p{
+  margin:0 0 18px;
+  font-size:13.5px;
+  line-height:1.55;
+  color:var(--muted);
+}
+
+.onboard-card .btn{width:100%;height:42px;font-size:14px}
+
+/* ---------- status / fallback ---------- */
+.status{
+  position:absolute;
+  z-index:40;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  width:min(88%,420px);
+  padding:26px 22px;
+  text-align:center;
+  background:#fff;
+  border-radius:var(--radius);
+  box-shadow:0 14px 44px rgba(10,32,64,.16);
+}
+
+.status h2{margin:0 0 8px;font-size:16px}
+.status p{margin:0 0 16px;font-size:13.5px;line-height:1.55;color:var(--muted)}
+
+.spinner{
+  width:26px;
+  height:26px;
+  margin:0 auto 14px;
+  border:3px solid rgba(15,44,82,.14);
+  border-top-color:var(--blue);
+  border-radius:50%;
+  animation:spin .8s linear infinite;
+}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.sr{
+  position:absolute;
+  width:1px;height:1px;
+  padding:0;margin:-1px;
+  overflow:hidden;
+  clip:rect(0 0 0 0);
+  white-space:nowrap;
+  border:0;
+}
+
+/* ---------- responsive ---------- */
+@media (max-width:640px){
+  .nav{width:36px;height:36px;background:rgba(15,44,82,.42)}
+  .nav svg{width:17px;height:17px}
+  .nav.prev{bottom:68px}
+  .slide{padding:8px 8px 12px}
+}
+
+@media (min-width:900px){
+  .slide{padding:18px}
+}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms!important;transition-duration:.01ms!important}
+  .deck{scroll-behavior:auto}
+  /* Drop the card motion entirely rather than flashing it in 0.01ms. */
+  .frame{animation-name:none;transform:none;opacity:1}
+}
