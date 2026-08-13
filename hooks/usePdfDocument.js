@@ -25,6 +25,7 @@ export default function usePdfDocument(url) {
       try {
         pdfjs = await import('pdfjs-dist');
       } catch (err) {
+        console.error('[newsletter] pdfjs-dist could not be loaded:', err);
         if (!cancelled) {
           setState({ status: 'unsupported', percent: null, pages: [], error: err });
         }
@@ -66,6 +67,21 @@ export default function usePdfDocument(url) {
 
         if (!cancelled) setState({ status: 'ready', percent: 100, pages, error: null });
       } catch (err) {
+        // The UI can only ever say "unavailable", so log the real cause —
+        // otherwise a failure here leaves a clean console and nothing to go on.
+        console.error('[newsletter] the PDF failed to load:', err);
+
+        // By far the most likely cause, and invisible from the message alone:
+        // the bundled pdfjs-dist and public/pdf.worker.min.mjs are different
+        // versions. pdf.js refuses to run rather than risk a format mismatch.
+        if (/API version|Worker version/i.test(err?.message ?? '')) {
+          console.error(
+            '[newsletter] pdfjs-dist and public/pdf.worker.min.mjs are on different versions. ' +
+              'Re-pin the worker with `node scripts/copy-pdf-worker.mjs` (npm install runs it ' +
+              'automatically) and redeploy — the worker must never be committed by hand.',
+          );
+        }
+
         if (!cancelled) setState({ status: 'error', percent: null, pages: [], error: err });
       }
     })();

@@ -51,6 +51,30 @@ pinned to the installed `pdfjs-dist` version — **a library/worker version mism
 throws at load.** For that reason `public/pdf.worker.min.mjs` is generated, not
 committed, and is listed in `.gitignore`.
 
+### If the reader shows "Inline preview unavailable"
+
+Open the console — the real cause is logged there. The usual one is:
+
+```
+The API version "6.2.108" does not match the Worker version "4.10.38"
+```
+
+pdf.js refuses to run when the library and worker disagree. It means
+`public/pdf.worker.min.mjs` is stale relative to the installed `pdfjs-dist` —
+almost always because the worker was copied in by hand, or the project was
+integrated into another app without the `postinstall` hook. Fix it by
+regenerating rather than by hand:
+
+```bash
+npm install                        # runs the copy automatically
+# or, without a full install:
+node scripts/copy-pdf-worker.mjs
+```
+
+Then redeploy. If you are vendoring these components into an existing app, carry
+`scripts/copy-pdf-worker.mjs` and the `postinstall` entry across too — otherwise
+the worker silently drifts the next time `pdfjs-dist` is upgraded.
+
 ---
 
 ## Structure
