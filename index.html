@@ -31,115 +31,72 @@
 <meta name="twitter:image:alt" content="Quarter at a Glance — IL Newsletter, May to July 2026">
 
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230f2c52'/%3E%3Cpath d='M8 10h7l6 6-6 6H8l6-6z' fill='%232e86c8'/%3E%3C/svg%3E">
-<link rel="preload" href="quarter-at-a-glance-may-jul-2026.pdf" as="fetch" crossorigin="anonymous">
+<!-- Deliberately no rel=preload for the PDF: the viewer fetches it in ranges,
+     and preloading would pull all 4.1MB up front and defeat that. -->
 
 <style>
   :root{
     --navy:#0f2c52;
-    --navy-deep:#0a2040;
     --blue:#2e86c8;
-    --blue-light:#5aa9e0;
-    --paper:#f4f3ef;
+    --paper:#eceef2;
     --ink:#0f2c52;
     --muted:#5b6b82;
-    --line:rgba(15,44,82,.14);
-    --bar-h:56px;
     --radius:14px;
   }
 
   *{box-sizing:border-box}
 
-  html{-webkit-text-size-adjust:100%}
+  html,body{
+    height:100%;
+    /* The deck owns scrolling; the document itself never scrolls. */
+    overflow:hidden;
+    overscroll-behavior:none;
+  }
 
   body{
     margin:0;
+    /* Column layout: the strip takes what it needs, the deck takes the rest,
+       so safe-area insets never have to be baked into a height calc. */
+    display:flex;
+    flex-direction:column;
     background:var(--paper);
     color:var(--ink);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
     -webkit-font-smoothing:antialiased;
-    overflow-x:hidden;
+    -webkit-text-size-adjust:100%;
+    -webkit-tap-highlight-color:transparent;
   }
 
-  /* ---------- top bar ---------- */
-  .bar{
-    position:sticky;
-    top:0;
-    z-index:20;
-    height:var(--bar-h);
-    display:flex;
-    align-items:center;
-    gap:12px;
-    padding:0 14px;
-    padding-left:max(14px,env(safe-area-inset-left));
-    padding-right:max(14px,env(safe-area-inset-right));
-    background:rgba(15,44,82,.96);
-    backdrop-filter:saturate(160%) blur(10px);
-    -webkit-backdrop-filter:saturate(160%) blur(10px);
-    color:#fff;
-    box-shadow:0 1px 0 rgba(255,255,255,.08),0 6px 20px rgba(10,32,64,.18);
+  main{
+    position:relative;
+    flex:1 1 auto;
+    min-height:0;
   }
-
-  .brand{
-    display:flex;
-    align-items:center;
-    gap:9px;
-    min-width:0;
-    flex:1;
-  }
-
-  .mark{
-    flex:none;
-    width:26px;
-    height:26px;
-    border-radius:7px;
-    background:linear-gradient(140deg,var(--blue),#1b5f9c);
-    display:grid;
-    place-items:center;
-  }
-
-  .mark svg{width:15px;height:15px;display:block}
-
-  .brand-txt{min-width:0}
-
-  .brand-txt b{
-    display:block;
-    font-size:13.5px;
-    font-weight:700;
-    letter-spacing:.2px;
-    line-height:1.15;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-  }
-
-  .brand-txt span{
-    display:block;
-    font-size:10.5px;
-    line-height:1.2;
-    color:#a9c6e4;
-    letter-spacing:.5px;
-    text-transform:uppercase;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-  }
-
-  .actions{display:flex;align-items:center;gap:8px;flex:none}
 
   .pager{
+    position:absolute;
+    left:12px;
+    left:max(12px,env(safe-area-inset-left));
+    bottom:20px;
+    bottom:max(20px,env(safe-area-inset-bottom));
+    z-index:25;
     font-size:12px;
+    font-weight:650;
     font-variant-numeric:tabular-nums;
-    color:#cfe1f2;
-    background:rgba(255,255,255,.1);
-    border:1px solid rgba(255,255,255,.14);
-    padding:5px 9px;
+    color:#fff;
+    background:rgba(15,44,82,.5);
+    padding:5px 11px;
     border-radius:999px;
     white-space:nowrap;
+    pointer-events:none;
+    backdrop-filter:blur(6px);
+    -webkit-backdrop-filter:blur(6px);
   }
 
   .btn{
     display:inline-flex;
     align-items:center;
+    justify-content:center;
     gap:6px;
     height:34px;
     padding:0 13px;
@@ -152,102 +109,208 @@
     border:0;
     cursor:pointer;
     white-space:nowrap;
-    transition:background .15s ease,transform .1s ease;
   }
 
   .btn:hover{background:#3d97da}
   .btn:active{transform:scale(.97)}
   .btn svg{width:15px;height:15px;flex:none}
 
-  /* ---------- viewer ---------- */
-  .viewer{
-    width:100%;
-    max-width:900px;
-    margin:0 auto;
-    padding:18px 14px 56px;
-    padding-left:max(14px,env(safe-area-inset-left));
-    padding-right:max(14px,env(safe-area-inset-right));
+  /* ---------- segmented progress (story style) ---------- */
+  .topline{
+    flex:none;
+    z-index:30;
+    background:var(--navy);
+    padding:max(9px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) 9px max(10px,env(safe-area-inset-left));
   }
 
-  .page{
+  .progress{
+    display:flex;
+    gap:3px;
+    align-items:center;
+  }
+
+  .seg{
+    flex:1 1 0;
+    height:3px;
+    min-width:0;
+    padding:0;
+    border:0;
+    border-radius:999px;
+    background:rgba(255,255,255,.22);
+    cursor:pointer;
+    transition:background .25s ease,transform .2s ease;
+  }
+
+  .seg.done{background:rgba(255,255,255,.5)}
+  .seg.active{background:#fff;transform:scaleY(1.6)}
+
+  /* ---------- the deck: one page per screen, swipe up ---------- */
+  .deck{
     position:relative;
+    height:100%;
+    display:flex;
+    flex-direction:column;
+    overflow-y:auto;
+    overflow-x:hidden;
+    scroll-snap-type:y mandatory;
+    -webkit-overflow-scrolling:touch;
+    /* Stop an overscroll at either end from pulling-to-refresh or navigating back. */
+    overscroll-behavior-y:contain;
+    scrollbar-width:none;
+  }
+
+  .deck::-webkit-scrollbar{display:none}
+
+  .slide{
+    flex:0 0 100%;
     width:100%;
-    margin:0 auto 18px;
+    height:100%;
+    scroll-snap-align:center;
+    /* Forces exactly one page per gesture, however hard the swipe. */
+    scroll-snap-stop:always;
+    padding:10px 10px 14px;
+    padding-bottom:max(14px,env(safe-area-inset-bottom));
+  }
+
+  .stage{
+    width:100%;
+    height:100%;
+    display:grid;
+    place-items:center;
+  }
+
+  /* Sized in px from JS so the shadow hugs the page, not the letterbox. */
+  .frame{
+    position:relative;
     background:#fff;
     border-radius:var(--radius);
     overflow:hidden;
-    box-shadow:0 1px 2px rgba(10,32,64,.10),0 10px 30px rgba(10,32,64,.10);
-    /* aspect-ratio is set from the real PDF page box, so layout never jumps */
+    box-shadow:0 2px 6px rgba(10,32,64,.10),0 14px 40px rgba(10,32,64,.16);
   }
 
-  .page canvas{
+  .frame canvas{
     display:block;
     width:100%;
-    height:auto;
+    height:100%;
   }
 
-  .page::after{
-    content:attr(data-page);
-    position:absolute;
-    right:10px;
-    bottom:10px;
-    font-size:11px;
-    font-weight:650;
-    font-variant-numeric:tabular-nums;
-    color:#fff;
-    background:rgba(15,44,82,.55);
-    backdrop-filter:blur(4px);
-    -webkit-backdrop-filter:blur(4px);
-    padding:3px 8px;
-    border-radius:999px;
-    opacity:0;
-    transition:opacity .25s ease;
-    pointer-events:none;
-  }
-
-  .page.ready::after{opacity:1}
-
-  .page .skeleton{
+  .frame .skeleton{
     position:absolute;
     inset:0;
-    background:
-      linear-gradient(100deg,rgba(15,44,82,.04) 30%,rgba(15,44,82,.09) 50%,rgba(15,44,82,.04) 70%)
-      #fff;
+    background:linear-gradient(100deg,rgba(15,44,82,.04) 30%,rgba(15,44,82,.09) 50%,rgba(15,44,82,.04) 70%) #fff;
     background-size:220% 100%;
     animation:shimmer 1.5s linear infinite;
   }
 
-  .page.ready .skeleton{display:none}
+  .frame.ready .skeleton{display:none}
 
   @keyframes shimmer{
     from{background-position:120% 0}
     to{background-position:-120% 0}
   }
 
-  /* ---------- status / fallback ---------- */
-  .status{
-    max-width:640px;
-    margin:44px auto;
-    padding:26px 22px;
+  /* ---------- flip controls, stacked bottom-right ---------- */
+  .nav{
+    position:absolute;
+    right:12px;
+    right:max(12px,env(safe-area-inset-right));
+    z-index:25;
+    width:40px;
+    height:40px;
+    display:grid;
+    place-items:center;
+    border:0;
+    border-radius:50%;
+    background:rgba(15,44,82,.55);
+    color:#fff;
+    cursor:pointer;
+    transition:opacity .2s ease,background .2s ease;
+    backdrop-filter:blur(6px);
+    -webkit-backdrop-filter:blur(6px);
+  }
+
+  .nav:hover{background:rgba(15,44,82,.78)}
+  .nav:active{transform:scale(.94)}
+  .nav svg{width:20px;height:20px}
+  .nav.prev{bottom:76px}
+  .nav.next{bottom:24px;bottom:max(24px,env(safe-area-inset-bottom))}
+  .nav[disabled]{opacity:0;pointer-events:none}
+
+  /* ---------- first-run instruction ---------- */
+  .onboard{
+    position:absolute;
+    inset:0;
+    z-index:50;
+    display:grid;
+    place-items:center;
+    padding:24px;
+    background:rgba(10,32,64,.72);
+    backdrop-filter:blur(3px);
+    -webkit-backdrop-filter:blur(3px);
+    transition:opacity .35s ease;
+  }
+
+  .onboard.gone{opacity:0;pointer-events:none}
+  .onboard[hidden]{display:none}
+
+  .onboard-card{
+    width:min(100%,320px);
+    padding:26px 24px 22px;
     text-align:center;
     background:#fff;
-    border:1px solid var(--line);
-    border-radius:var(--radius);
-    box-shadow:0 8px 26px rgba(10,32,64,.07);
+    border-radius:20px;
+    box-shadow:0 18px 50px rgba(10,32,64,.3);
   }
 
-  .status h2{
+  .swipe-icon{
+    height:58px;
+    display:grid;
+    place-items:center;
+    margin-bottom:6px;
+    color:var(--blue);
+  }
+
+  .swipe-icon svg{width:30px;height:30px}
+  .swipe-icon svg:first-child{opacity:.35;margin-bottom:-12px;animation:rise 1.6s ease-in-out infinite}
+  .swipe-icon svg:last-child{animation:rise 1.6s ease-in-out .18s infinite}
+
+  @keyframes rise{
+    0%,100%{transform:translateY(3px);opacity:.35}
+    50%{transform:translateY(-3px);opacity:1}
+  }
+
+  .onboard-card h2{
     margin:0 0 8px;
-    font-size:17px;
-    letter-spacing:-.2px;
+    font-size:19px;
+    letter-spacing:-.3px;
   }
 
-  .status p{
-    margin:0 0 16px;
-    font-size:14px;
+  .onboard-card p{
+    margin:0 0 18px;
+    font-size:13.5px;
     line-height:1.55;
     color:var(--muted);
   }
+
+  .onboard-card .btn{width:100%;height:42px;font-size:14px}
+
+  /* ---------- status / fallback ---------- */
+  .status{
+    position:absolute;
+    z-index:40;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    width:min(88%,420px);
+    padding:26px 22px;
+    text-align:center;
+    background:#fff;
+    border-radius:var(--radius);
+    box-shadow:0 14px 44px rgba(10,32,64,.16);
+  }
+
+  .status h2{margin:0 0 8px;font-size:16px}
+  .status p{margin:0 0 16px;font-size:13.5px;line-height:1.55;color:var(--muted)}
 
   .spinner{
     width:26px;
@@ -261,17 +324,6 @@
 
   @keyframes spin{to{transform:rotate(360deg)}}
 
-  .foot{
-    text-align:center;
-    font-size:12px;
-    line-height:1.6;
-    color:var(--muted);
-    padding:0 18px 40px;
-  }
-
-  .foot a{color:var(--blue);text-decoration:none;font-weight:600}
-  .foot a:hover{text-decoration:underline}
-
   .sr{
     position:absolute;
     width:1px;height:1px;
@@ -284,62 +336,55 @@
 
   /* ---------- responsive ---------- */
   @media (max-width:640px){
-    :root{--bar-h:52px;--radius:11px}
-    .viewer{padding:12px 10px 40px}
-    .page{margin-bottom:12px}
-    .pager{display:none}
-    .btn{height:32px;padding:0 12px;font-size:12.5px}
-    .btn .btn-label{display:none}
-    .btn{padding:0;width:32px;justify-content:center}
+    .nav{width:36px;height:36px;background:rgba(15,44,82,.42)}
+    .nav svg{width:17px;height:17px}
+    .nav.prev{bottom:68px}
+    .slide{padding:8px 8px 12px}
   }
 
-  /* On roomy screens, cap each page so a whole page fits the viewport height.
-     --ar is the real PDF page ratio (width/height), set from JS. */
-  @media (min-width:860px){
-    .page{
-      max-width:min(100%,calc((100vh - var(--bar-h) - 46px) * var(--ar,0.75)));
-      margin-bottom:26px;
-    }
-    .viewer{padding-top:24px}
-  }
-
-  @media (min-width:1200px){
-    .viewer{max-width:960px}
+  @media (min-width:900px){
+    .slide{padding:18px}
   }
 
   @media (prefers-reduced-motion:reduce){
     *{animation-duration:.01ms!important;transition-duration:.01ms!important}
+    .deck{scroll-behavior:auto}
   }
 </style>
 </head>
 <body>
 
-<header class="bar">
-  <div class="brand">
-    <span class="mark" aria-hidden="true">
-      <svg viewBox="0 0 24 24" fill="none"><path d="M4 6h7l7 6-7 6H4l7-6z" fill="#fff"/></svg>
-    </span>
-    <span class="brand-txt">
-      <b>Quarter at a Glance</b>
-      <span>IL Newsletter · May–July 2026</span>
-    </span>
-  </div>
-  <div class="actions">
-    <span class="pager" id="pager" aria-live="polite">— / —</span>
-    <a class="btn" id="dl" href="quarter-at-a-glance-may-jul-2026.pdf" download aria-label="Download the PDF">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/>
-      </svg>
-      <span class="btn-label">PDF</span>
-    </a>
-  </div>
-</header>
+<div class="topline">
+  <div class="progress" id="progress" role="tablist" aria-label="Jump to page"></div>
+</div>
 
 <main>
   <h1 class="sr">Quarter at a Glance — IL Newsletter, May to July 2026</h1>
   <p class="sr">Take a look back at the quarter gone by—where ideas turned into action, and action created impact.</p>
 
-  <div class="viewer" id="viewer" role="document" aria-label="Newsletter pages"></div>
+  <div class="deck" id="deck" tabindex="0" role="region"
+       aria-roledescription="carousel" aria-label="Newsletter pages, one page per screen"></div>
+
+  <span class="pager" id="pager" aria-live="polite">— / —</span>
+
+  <button class="nav prev" id="prev" type="button" aria-label="Previous page" disabled>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 15 7-7 7 7"/></svg>
+  </button>
+  <button class="nav next" id="next" type="button" aria-label="Next page" disabled>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 9 7 7 7-7"/></svg>
+  </button>
+
+  <div class="onboard" id="onboard" hidden>
+    <div class="onboard-card" role="dialog" aria-modal="true" aria-labelledby="obTitle">
+      <div class="swipe-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 15 7-7 7 7"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 15 7-7 7 7"/></svg>
+      </div>
+      <h2 id="obTitle">Swipe up to read</h2>
+      <p id="obBody">One page at a time, like a story. <span id="obCount"></span></p>
+      <button class="btn" id="onboardOk" type="button">Got it</button>
+    </div>
+  </div>
 
   <div class="status" id="status">
     <div class="spinner" aria-hidden="true"></div>
@@ -347,20 +392,22 @@
     <p id="statusMsg">Fetching the PDF.</p>
     <a class="btn" href="quarter-at-a-glance-may-jul-2026.pdf" target="_blank" rel="noopener">Open PDF directly</a>
   </div>
-
-  <p class="foot">
-    Infinity Learn by Sri Chaitanya · Quarter at a Glance, May–July 2026<br>
-    <a href="quarter-at-a-glance-may-jul-2026.pdf" download>Download the full newsletter (PDF)</a>
-  </p>
 </main>
 
 <script type="module">
 const PDF_URL = 'quarter-at-a-glance-may-jul-2026.pdf';
+const SEEN_KEY = 'il-newsletter-q2-2026:onboarded';
 
-const viewer    = document.getElementById('viewer');
+const deck      = document.getElementById('deck');
+const progress  = document.getElementById('progress');
+const pager     = document.getElementById('pager');
+const prevBtn   = document.getElementById('prev');
+const nextBtn   = document.getElementById('next');
+const onboard   = document.getElementById('onboard');
+const onboardOk = document.getElementById('onboardOk');
+const obCount   = document.getElementById('obCount');
 const statusBox = document.getElementById('status');
 const statusMsg = document.getElementById('statusMsg');
-const pager     = document.getElementById('pager');
 
 const fail = (msg) => {
   statusBox.querySelector('.spinner')?.remove();
@@ -378,15 +425,25 @@ try {
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = './vendor/pdf.worker.min.mjs';
 
-// Cap the backing-store resolution so tall pages stay within mobile memory limits.
+// Cap the backing store so tall pages stay within mobile memory limits.
 const dpr = () => Math.min(window.devicePixelRatio || 1, 2);
 const MAX_CANVAS_PX = 4096;
 
 let pdf;
 const slots = [];
+let index = 0;
 
 try {
-  const task = pdfjsLib.getDocument({ url: PDF_URL, disableAutoFetch: false });
+  // Each page of this PDF is one full-page JPEG, so the file is ~97% image data
+  // and cannot be shrunk losslessly. Instead, pull it in ranges: the first page
+  // paints after a few hundred KB rather than after all 4.1MB. Hosts that do not
+  // answer with 206 simply stream the whole file as before.
+  const task = pdfjsLib.getDocument({
+    url: PDF_URL,
+    disableAutoFetch: true,
+    rangeChunkSize: 262144,
+  });
+
   task.onProgress = ({ loaded, total }) => {
     if (total) statusMsg.textContent = `Fetching the PDF… ${Math.round((loaded / total) * 100)}%`;
   };
@@ -397,40 +454,69 @@ try {
 }
 
 statusBox.remove();
-pager.textContent = `1 / ${pdf.numPages}`;
 
-// Build one placeholder per page, sized by the real page box so nothing reflows.
+// ---- build one slide per page -------------------------------------------
 for (let n = 1; n <= pdf.numPages; n++) {
   const page = await pdf.getPage(n);
   const vp = page.getViewport({ scale: 1 });
 
-  const el = document.createElement('div');
-  el.className = 'page';
-  el.dataset.page = `${n} / ${pdf.numPages}`;
-  el.style.aspectRatio = `${vp.width} / ${vp.height}`;
-  el.style.setProperty('--ar', String(vp.width / vp.height));
-  el.innerHTML = '<div class="skeleton"></div>';
-  viewer.appendChild(el);
+  const slide = document.createElement('section');
+  slide.className = 'slide';
+  slide.setAttribute('role', 'group');
+  slide.setAttribute('aria-roledescription', 'page');
+  slide.setAttribute('aria-label', `Page ${n} of ${pdf.numPages}`);
 
-  slots.push({ n, el, page, vp, canvas: null, renderedAt: 0, task: null });
+  const stage = document.createElement('div');
+  stage.className = 'stage';
+
+  const frame = document.createElement('div');
+  frame.className = 'frame';
+  frame.innerHTML = '<div class="skeleton"></div>';
+
+  stage.appendChild(frame);
+  slide.appendChild(stage);
+  deck.appendChild(slide);
+
+  const seg = document.createElement('button');
+  seg.className = 'seg';
+  seg.type = 'button';
+  seg.setAttribute('role', 'tab');
+  seg.setAttribute('aria-label', `Page ${n}`);
+  seg.addEventListener('click', () => goTo(n - 1));
+  progress.appendChild(seg);
+
+  slots.push({ n, page, ar: vp.width / vp.height, vpW: vp.width, vpH: vp.height,
+               slide, stage, frame, seg, canvas: null, renderedAt: 0, task: null });
+}
+
+// ---- layout: fit each page fully inside its slide ------------------------
+function layout(slot) {
+  const boxW = slot.stage.clientWidth;
+  const boxH = slot.stage.clientHeight;
+  if (!boxW || !boxH) return 0;
+
+  // Contain: whichever axis runs out first decides the size.
+  const w = Math.min(boxW, boxH * slot.ar);
+
+  slot.frame.style.width = `${Math.round(w)}px`;
+  slot.frame.style.height = `${Math.round(w / slot.ar)}px`;
+  return Math.round(w);
 }
 
 async function render(slot) {
-  const cssW = slot.el.clientWidth;
+  const cssW = layout(slot);
   if (!cssW) return;
-
-  // Re-render only when the width moved enough to matter.
-  if (slot.renderedAt && Math.abs(cssW - slot.renderedAt) < 24) return;
+  if (slot.renderedAt && Math.abs(cssW - slot.renderedAt) < 8) return;
 
   slot.task?.cancel();
 
-  let scale = (cssW * dpr()) / slot.vp.width;
-  const projected = Math.max(slot.vp.width, slot.vp.height) * scale;
+  let scale = (cssW * dpr()) / slot.vpW;
+  const projected = Math.max(slot.vpW, slot.vpH) * scale;
   if (projected > MAX_CANVAS_PX) scale *= MAX_CANVAS_PX / projected;
 
   const vp = slot.page.getViewport({ scale });
   const canvas = document.createElement('canvas');
-  canvas.width  = Math.floor(vp.width);
+  canvas.width = Math.floor(vp.width);
   canvas.height = Math.floor(vp.height);
   canvas.setAttribute('role', 'img');
   canvas.setAttribute('aria-label', `Newsletter page ${slot.n} of ${pdf.numPages}`);
@@ -447,8 +533,8 @@ async function render(slot) {
 
   slot.canvas?.remove();
   slot.canvas = canvas;
-  slot.el.appendChild(canvas);
-  slot.el.classList.add('ready');
+  slot.frame.appendChild(canvas);
+  slot.frame.classList.add('ready');
   slot.renderedAt = cssW;
   slot.task = null;
 }
@@ -460,68 +546,114 @@ function unload(slot) {
   slot.canvas.remove();
   slot.canvas = null;
   slot.renderedAt = 0;
-  slot.el.classList.remove('ready');
+  slot.frame.classList.remove('ready');
 }
 
-// Scroll-driven rather than IntersectionObserver-driven: observer callbacks are
-// throttled (or skipped entirely) in background and embedded tabs, which would
-// leave pages blank. Keep a band of ~1.5 viewports rendered either side.
-const BAND = 1.5;
+// Keep the current page plus its immediate neighbours ready, so a flip in
+// either direction lands on an already-drawn page.
+function refresh() {
+  slots.forEach((slot, i) => {
+    const d = Math.abs(i - index);
+    if (d <= 1) render(slot);
+    else if (d > 2) unload(slot);
+    else layout(slot);
 
-function update() {
-  const vh = window.innerHeight || 800;
-  const top = -BAND * vh;
-  const bottom = vh + BAND * vh;
+    slot.seg.classList.toggle('active', i === index);
+    slot.seg.classList.toggle('done', i < index);
+    slot.seg.setAttribute('aria-selected', i === index ? 'true' : 'false');
+  });
 
-  let currentPage = 1;
-  let bestDist = Infinity;
+  pager.textContent = `${index + 1} / ${pdf.numPages}`;
+  prevBtn.disabled = index === 0;
+  nextBtn.disabled = index === pdf.numPages - 1;
+}
 
-  for (const slot of slots) {
-    const r = slot.el.getBoundingClientRect();
-
-    if (r.bottom > top && r.top < bottom) render(slot);
-    else if (slots.length > 4) unload(slot);
-
-    const dist = Math.abs(r.top + r.height / 2 - vh / 2);
-    if (dist < bestDist) {
-      bestDist = dist;
-      currentPage = slot.n;
-    }
+function goTo(i, smooth = true) {
+  const target = Math.max(0, Math.min(pdf.numPages - 1, i));
+  deck.scrollTo({ top: target * deck.clientHeight, behavior: smooth ? 'smooth' : 'auto' });
+  // Update immediately so the flip feels instant even before the scroll settles.
+  if (target !== index) {
+    index = target;
+    refresh();
   }
-
-  pager.textContent = `${currentPage} / ${pdf.numPages}`;
 }
 
+// ---- input ---------------------------------------------------------------
 let ticking = false;
-const schedule = () => {
+deck.addEventListener('scroll', () => {
   if (ticking) return;
   ticking = true;
   requestAnimationFrame(() => {
     ticking = false;
-    update();
+    const h = deck.clientHeight;
+    if (!h) return;
+    const i = Math.round(deck.scrollTop / h);
+    if (i !== index) {
+      index = i;
+      refresh();
+    }
   });
-};
+}, { passive: true });
 
-window.addEventListener('scroll', schedule, { passive: true });
-window.addEventListener('orientationchange', schedule);
+prevBtn.addEventListener('click', () => goTo(index - 1));
+nextBtn.addEventListener('click', () => goTo(index + 1));
 
-// Hidden tabs suspend requestAnimationFrame, which stalls pdf.js mid-render.
-// Kick the queue again as soon as the tab is shown.
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') update();
+deck.addEventListener('keydown', (e) => {
+  const map = { ArrowDown: 1, PageDown: 1, ' ': 1, ArrowUp: -1, PageUp: -1 };
+  if (e.key in map) {
+    e.preventDefault();
+    goTo(index + map[e.key]);
+  } else if (e.key === 'Home') {
+    e.preventDefault();
+    goTo(0);
+  } else if (e.key === 'End') {
+    e.preventDefault();
+    goTo(pdf.numPages - 1);
+  }
 });
 
-// Re-render at the new width after a resize, once it settles.
+// ---- resize: keep the current page pinned --------------------------------
 let t;
 const onResize = () => {
   clearTimeout(t);
-  t = setTimeout(update, 200);
+  t = setTimeout(() => {
+    deck.scrollTo({ top: index * deck.clientHeight, behavior: 'auto' });
+    refresh();
+  }, 180);
 };
 
 window.addEventListener('resize', onResize);
-if ('ResizeObserver' in window) new ResizeObserver(onResize).observe(viewer);
+window.addEventListener('orientationchange', onResize);
 
-update();
+// Hidden tabs suspend requestAnimationFrame, which stalls pdf.js mid-render.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') refresh();
+});
+
+refresh();
+
+// ---- first-run instruction ----------------------------------------------
+let seen = false;
+try { seen = localStorage.getItem(SEEN_KEY) === '1'; } catch { /* private mode */ }
+
+if (!seen) {
+  obCount.textContent = `${pdf.numPages} pages in this quarter's newsletter.`;
+  onboard.hidden = false;
+
+  const dismiss = () => {
+    if (onboard.hidden || onboard.classList.contains('gone')) return;
+    onboard.classList.add('gone');
+    setTimeout(() => { onboard.hidden = true; }, 400);
+    deck.removeEventListener('scroll', dismiss);
+    try { localStorage.setItem(SEEN_KEY, '1'); } catch { /* private mode */ }
+    deck.focus({ preventScroll: true });
+  };
+
+  onboardOk.addEventListener('click', dismiss);
+  onboard.addEventListener('click', dismiss);
+  deck.addEventListener('scroll', dismiss, { passive: true });
+  onboardOk.focus({ preventScroll: true });
+}
 </script>
 
 </body>
