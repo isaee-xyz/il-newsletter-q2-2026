@@ -71,6 +71,11 @@ Range requests solve the real problem instead: time-to-first-page, rather than t
 | `quarter-at-a-glance-may-jul-2026.pdf` | The source newsletter, unmodified |
 | `og-image.jpg` | 1200×630 social preview card |
 | `vendor/` | Vendored PDF.js 4.10.38 (no CDN dependency) |
+| `vercel.json` | Content types and caching — no build step |
+
+Every tracked file is needed at runtime. The two `vendor/` files are the whole of
+PDF.js: `pdf.min.mjs` is the library and `pdf.worker.min.mjs` is the worker it
+requires; neither can be trimmed further for an image-only PDF.
 
 ## Local preview
 
@@ -98,7 +103,5 @@ To deploy from the CLI instead:
 npx vercel --prod
 ```
 
-A mirror is also published by GitHub Pages at
-https://isaee-xyz.github.io/il-newsletter-q2-2026/ — note the absolute `og:image`
-and `canonical` URLs in `index.html` point at the Vercel domain, so the Vercel
-deployment is the one to share.
+The absolute `og:image` and `canonical` URLs in `index.html` point at the Vercel
+domain, so that is the deployment to share.

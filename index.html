@@ -93,11 +93,11 @@
     -webkit-backdrop-filter:blur(6px);
   }
 
+  /* Two users: the onboarding "Got it" button and the fallback PDF link. */
   .btn{
     display:inline-flex;
     align-items:center;
     justify-content:center;
-    gap:6px;
     height:34px;
     padding:0 13px;
     border-radius:999px;
@@ -113,7 +113,6 @@
 
   .btn:hover{background:#3d97da}
   .btn:active{transform:scale(.97)}
-  .btn svg{width:15px;height:15px;flex:none}
 
   /* ---------- segmented progress (story style) ---------- */
   .topline{
@@ -415,7 +414,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 15 7-7 7 7"/></svg>
       </div>
       <h2 id="obTitle">Swipe up to read</h2>
-      <p id="obBody">One page at a time, like a story. <span id="obCount"></span></p>
+      <p>One page at a time, like a story. <span id="obCount"></span></p>
       <button class="btn" id="onboardOk" type="button">Got it</button>
     </div>
   </div>
