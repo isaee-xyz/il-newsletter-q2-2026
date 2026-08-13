@@ -2,7 +2,7 @@
 
 A mobile-responsive web wrapper around the Infinity Learn quarterly newsletter PDF.
 
-**Live:** https://isaee-xyz.github.io/il-newsletter-q2-2026/
+**Live:** https://il-newsletter-q2-2026.vercel.app/
 
 The original PDF is embedded as-is and rendered inline with [PDF.js](https://mozilla.github.io/pdf.js/) — nothing is re-typeset or converted to images, so what you see is the actual document, pixel for pixel, at any screen size.
 
@@ -41,4 +41,21 @@ Then open http://localhost:8777.
 
 ## Deployment
 
-Served by GitHub Pages from the `main` branch root. Push to `main` to publish.
+Hosted on **Vercel** as a static site — there is no build step, `vercel.json` only
+sets content types and caching (long-lived for the PDF and vendored JS, revalidated
+for the HTML).
+
+Import the repo once at [vercel.com/new](https://vercel.com/new), leaving the
+framework preset as **Other** and the build command empty. Every push to `main`
+then redeploys automatically.
+
+To deploy from the CLI instead:
+
+```bash
+npx vercel --prod
+```
+
+A mirror is also published by GitHub Pages at
+https://isaee-xyz.github.io/il-newsletter-q2-2026/ — note the absolute `og:image`
+and `canonical` URLs in `index.html` point at the Vercel domain, so the Vercel
+deployment is the one to share.
